@@ -5,7 +5,7 @@ This is a collection of python tools that I use commonly, but don't seem to warr
 ## What is currently in here
 
 1. The readme
-2. To come...
+2. Affine transformation module
 
 ##Installation
 Install by navigating to the package route and typing:
