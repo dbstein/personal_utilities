@@ -15,9 +15,9 @@ def affine_transformation(xin, min_in, max_in, min_out, max_out,
 
 def _affine_transformation(xin, rat, min_in, min_out, use_numexpr):
     if use_numexpr:
-        xout = ne.evaluate('(x-min_in)*rat + min_out', out=xout)
+        xout = ne.evaluate('(xin - min_in)*rat + min_out', out=xout)
     else:
-        xout = (x - min_in)*rat + min_out
+        xout = (xin - min_in)*rat + min_out
     return xout
 
 class AffineTransformer(object):
@@ -35,3 +35,9 @@ class AffineTransformer(object):
                                             self.min_out, self.use_numexpr)
     def get_ratio(self):
         return self.ratio
+
+class NullTransformer(AffineTransformer):
+    def __init__(self):
+        pass
+    def __call__(self, xin):
+        return xin
