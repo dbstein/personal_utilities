@@ -18,3 +18,7 @@ def my_resample(f, N):
         warnings.simplefilter('ignore')
         out = sp.signal.resample(f, N)
     return out
+
+def concat(*args):
+    return np.concatenate([ np.array(arg).ravel() for arg in args ])
+
