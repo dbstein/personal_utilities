@@ -34,8 +34,8 @@ class GmresSolver(object):
         or a list of these solvers in order of preference
         """
         self.shape = shape
-        self.A = LinearOperator(shape, dtype=complex, matvec=A_func)
-        self.M = LinearOperator(shape, dtype=complex, matvec=M_func)
+        self.A = LinearOperator(shape, dtype=dtype, matvec=A_func)
+        self.M = LinearOperator(shape, dtype=dtype, matvec=M_func)
         self._set_solver(solver)
     def _set_solver(self, solver):
         for sol in tuple(solver):
