@@ -1,14 +1,16 @@
 import time
 
 class Timer(object):
-    def __init__(self):
-        pass
+    def __init__(self, verbose=False):
+        self.verbose = verbose
     def reset(self):
         self.start_time = time.time()
         self.last_time = self.start_time
         self.markings  = []
         self.splits    = []
     def mark(self, marker):
+        if verbose:
+            print('   ...marking', marker)
         self.markings.append(marker)
         timing = time.time()
         self.splits.append(timing-self.last_time)
