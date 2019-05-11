@@ -9,7 +9,7 @@ class Timer(object):
         self.markings  = []
         self.splits    = []
     def mark(self, marker):
-        if verbose:
+        if self.verbose:
             print('   ...marking', marker)
         self.markings.append(marker)
         timing = time.time()
