@@ -1,5 +1,6 @@
 import numpy as np
 import fast_interp
+from .single_liners import my_resample
 
 def find_boundary_normal_coordinates(bdy, x, y, newton_tol, guess_ind=None, verbose=False):
     """
@@ -16,8 +17,8 @@ def find_boundary_normal_coordinates(bdy, x, y, newton_tol, guess_ind=None, verb
     yp = np.fft.ifft(np.fft.fft(bdy.y)*bdy.ik).real
     nxp = np.fft.ifft(np.fft.fft(bdy.normal_x)*bdy.ik).real
     nyp = np.fft.ifft(np.fft.fft(bdy.normal_y)*bdy.ik).real
-    interp = lambda f: \
-        fast_interp.interp1d(0.0, 2*np.pi, bdy.dt, f, k=5, p=True)
+    def interp(f):
+        return fast_interp.interp1d(0.0, 2*np.pi, bdy.dt, f, k=5, p=True)
     nx_i =  interp(bdy.normal_x)
     ny_i =  interp(bdy.normal_y)
     nxp_i = interp(nxp)
@@ -69,7 +70,7 @@ def find_boundary_normal_coordinates(bdy, x, y, newton_tol, guess_ind=None, verb
             xo, yo = f(t_new, r_new)
             remx = xo - x
             remy = yo - y
-            rem_new = np.abs(remx**2 + remy**2).max()
+            rem_new = np.sqrt(remx**2 + remy**2).max()
             # print line_factor
             if (rem_new < (1-0.5*line_factor)*rem) or line_factor < 1e-4:
                 t = t_new
@@ -102,8 +103,9 @@ def find_boundary_alpha_coordinates(bdy, x, y, newton_tol, guess_ind=None, verbo
     yp = np.fft.ifft(yh*bdy.ik).real
     xpp = np.fft.ifft(xh*bdy.ik**2).real
     ypp = np.fft.ifft(yh*bdy.ik**2).real
-    interp = lambda f: \
-        fast_interp.interp1d(0.0, 2*np.pi, bdy.dt, f, k=5, p=True)
+    def interp(f):
+        ff = my_resample(f, 10*bdy.N)
+        return fast_interp.interp1d(0.0, 2*np.pi, bdy.dt/10, ff, k=5, p=True)
     x_i =   interp(bdy.x)
     y_i =   interp(bdy.y)
     xp_i =  interp(xp)
@@ -153,7 +155,7 @@ def find_boundary_alpha_coordinates(bdy, x, y, newton_tol, guess_ind=None, verbo
             xo, yo = f(t_new, r_new)
             remx = xo - x
             remy = yo - y
-            rem_new = np.abs(remx**2 + remy**2).max()
+            rem_new = np.sqrt(remx**2 + remy**2).max()
             # print line_factor
             if (rem_new < (1-0.5*line_factor)*rem) or line_factor < 1e-4:
                 t = t_new
