@@ -8,7 +8,7 @@ from .fast_dot import fast_dot
 from .single_liners import concat, reshape_to_vec
 from .gmres import GmresSolver
 
-default_gmres_preference_order = ['pyamg', 'krypy', 'scipy']
+default_gmres_preference_order = ['krypy', 'scipy']
 
 def fast_LU_solve(LU, b):
     """
@@ -152,6 +152,82 @@ class RealAnnularGeometry(object):
         # these are what work...
         self.ipsi_DR_ipsi_DT_psi2 = dt_curvature*idenom2
         self.ipsi_DT_ipsi_DR_psi2 = dt_curvature*idenom2
+
+class WeirdAnnularModifiedHelmholtzSolver(object):
+    def __init__(self, AAG, k, gmres_preference_order=default_gmres_preference_order):
+        self.AAG = AAG
+        self.k = k
+        M =  AAG.M
+        ns = AAG.ns
+        n = AAG.n
+        NB = M*ns
+        self.M = M
+        self.ns = ns
+        self.n = n
+        self.NB = NB
+        self.small_shape = (self.M, self.ns)
+        self.shape = (self.M, self.n)
+        self._construct()
+        self.gmres = GmresSolver(self._apply, self._preconditioner, complex, (NB, NB), gmres_preference_order)
+    def _construct(self):
+        AAG = self.AAG
+        CO = AAG.CO
+        apsi1 =  AAG.approx_psi1
+        aipsi1 = AAG.approx_inv_psi1
+        aipsi2 = AAG.approx_inv_psi2
+        ks =     AAG.ks
+        D01 =    CO.D01
+        D12 =    CO.D12
+        R01 =    CO.R01
+        R12 =    CO.R12
+        R02 =    CO.R02
+        ibcd =   CO.ibc_dirichlet
+        ibcn =   CO.ibc_neumann
+        ns =     self.ns
+        M =      self.M
+        self._KLUS = []
+        for i in range(ns):
+            K = np.empty((M,M), dtype=complex)
+            LL = fast_dot(aipsi2, fast_dot(D12, fast_dot(apsi1, D01))) - \
+                fast_dot(np.ones(M-2)*ks[i]**2, fast_dot(R12, fast_dot(aipsi1, R01)))
+            K[:M-2] = self.k**2*R02 - LL
+            K[M-2:M-1] = ibcd
+            K[M-1:M-0] = ibcn
+            self._KLUS.append(sp.linalg.lu_factor(K))
+    def _preconditioner(self, fh):
+        fh = fh.reshape(self.small_shape)
+        fo = np.empty(self.small_shape, dtype=complex)
+        for i in range(self.ns):
+            fo[:,i] = fast_LU_solve(self._KLUS[i], fh[:,i])
+        return fo.ravel()
+    def _apply(self, uh):
+        AAG = self.AAG
+        RAG = self.RAG
+        CO = self.AAG.CO
+        ibcd = CO.ibc_dirichlet
+        ibcn = CO.ibc_neumann
+        R02  = CO.R02
+        uh = uh.reshape(self.small_shape)
+        luh = scalar_laplacian(CO, AAG, RAG, uh)
+        fuh = self.k**2*R02.dot(uh) - luh
+        ibc = ibcd.dot(uh)
+        obc = ibcn.dot(uh)
+        return concat(fuh, ibc, obc)
+    def solve(self, RAG, f, idir, ineu, verbose=False, **kwargs):
+        self.RAG = RAG
+        R02 = self.AAG.CO.R02
+        ff = concat(R02.dot(f), idir, ineu)
+        ffh = mfft(ff.reshape(self.shape))
+        res = self.gmres(ffh, **kwargs)
+        if verbose:
+            print('GMRES took:', self.gmres.iterations, 'iterations.')
+        return mifft(res.reshape(self.small_shape)).real
+
+class WeirdAnnularPoissonSolver(WeirdAnnularModifiedHelmholtzSolver):
+    def __init__(self, AAG):
+        super().__init__(AAG, 0.0)
+    def solve(self, RAG, f, idir, ineu, verbose=False, **kwargs):
+        return super().solve(RAG, -f, idir=idir, ineu=ineu, verbose=verbose, **kwargs)
 
 class AnnularModifiedHelmholtzSolver(object):
     """
