@@ -1,6 +1,7 @@
 from scipy.sparse.linalg.isolve.utils import make_system
 from scipy.sparse.linalg.isolve import _iterative
 from scipy._lib._util import _aligned_zeros
+import numpy as np
 
 class gmres_counter(object):
     def __init__(self, disp=True):
