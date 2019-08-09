@@ -21,7 +21,6 @@ class gmres_counter(object):
 mydict = {
 }
 
-
 def _stoptest(residual, atol):
     """
     Successful termination condition for the solvers.
@@ -38,10 +37,8 @@ w2 = int(w1[0]) + int(w1[1])/10.0 + int(w1[2])/100.0
 
 if w2 > 1.0:
 
-    def gmres(A, b, x0=None, tol=1e-5, restart=None, maxiter=None, M=None, callback=None, verbose=False):
-        vcall = callback is None and verbose
-        if vcall:
-            callback = gmres_counter(True)
+    def gmres(A, b, x0=None, tol=1e-5, restart=None, maxiter=None, M=None, verbose=False):
+        callback = gmres_counter(verbose)
 
         A, M, x, b, postprocess = make_system(A, M, x0, b)
 
@@ -147,22 +144,12 @@ if w2 > 1.0:
             # info isn't set appropriately otherwise
             info = maxiter
         
-        if verbose:
-            return postprocess(x), info, mydict['resnorms']
-        else:    
-            return postprocess(x), info
+        return postprocess(x), info, mydict['resnorms']
 
 else:
 
-    def gmres(A, b, x0=None, tol=1e-5, restart=None, maxiter=None, M=None, callback=None, verbose=False):
-        vcall = callback is None and verbose
-        if vcall:
-            callback = gmres_counter(True)
-
+    def gmres(A, b, x0=None, tol=1e-5, restart=None, maxiter=None, M=None, verbose=False):
+        callback = gmres_counter(verbose)
         out = scipy.sparse.linalg.gmres(A, b, x0=x0, tol=tol, restart=restart, maxiter=maxiter, M=M, callback=callback)
-        
-        if vcall:
-            return out[0], out[1], mydict['resnorms']
-        else:    
-            return out
+        return out[0], out[1], mydict['resnorms']
 
