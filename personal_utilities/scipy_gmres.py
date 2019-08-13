@@ -38,6 +38,10 @@ w2 = int(w1[0]) + int(w1[1])/10.0 + int(w1[2])/100.0
 if w2 > 1.0:
 
     def gmres(A, b, x0=None, tol=1e-5, restart=None, maxiter=None, M=None, verbose=False):
+        """
+        Modified scipy GMRES that terminates in the old-fashioned way
+        (with presid, not resid)
+        """
         callback = gmres_counter(verbose)
 
         A, M, x, b, postprocess = make_system(A, M, x0, b)
@@ -146,10 +150,57 @@ if w2 > 1.0:
         
         return postprocess(x), info, mydict['resnorms']
 
+    def right_gmres(A, b, M, x0=None, tol=1e-5, restart=None, maxiter=None, verbose=False):
+        """
+        Right preconditioned GMRES
+        (ripped off from Floren's code at https://github.com/flatironinstitute/bpm_utilities/blob/master/python/bpm_utilities/gmres.py)
+        """
+        from functools import partial
+        A_LO = scipy.sparse.linalg.aslinearoperator(A)
+        M_LO = scipy.sparse.linalg.aslinearoperator(M)
+        # Define new LinearOperator A*P^{-1}
+        def APinv(x,A,M):
+            return A.matvec(M.matvec(x))
+        APinv_partial = partial(APinv, A=A_LO, M=M_LO)
+        APinv_partial_LO = scipy.sparse.linalg.LinearOperator(A.shape, matvec=APinv_partial, dtype=float) 
+
+        # Solve system A*P^{-1} * y = b
+        y, info, resnorms = gmres(APinv_partial_LO, b, x0=x0, tol=tol, maxiter=maxiter, restart=restart, verbose=verbose) 
+
+        # Solve system P*x = y
+        x = M_LO.matvec(y)
+
+        # Return solution and info
+        return x, info, resnorms
+
 else:
 
     def gmres(A, b, x0=None, tol=1e-5, restart=None, maxiter=None, M=None, verbose=False):
         callback = gmres_counter(verbose)
         out = scipy.sparse.linalg.gmres(A, b, x0=x0, tol=tol, restart=restart, maxiter=maxiter, M=M, callback=callback)
         return out[0], out[1], mydict['resnorms']
+
+    def right_gmres(A, b, M, x0=None, tol=1e-5, restart=None, maxiter=None, verbose=False):
+        """
+        Right preconditioned GMRES
+        (ripped off from Floren's code at https://github.com/flatironinstitute/bpm_utilities/blob/master/python/bpm_utilities/gmres.py)
+        """
+        from functools import partial
+        A_LO = scipy.sparse.linalg.aslinearoperator(A)
+        M_LO = scipy.sparse.linalg.aslinearoperator(M)
+        # Define new LinearOperator A*P^{-1}
+        def APinv(x,A,M):
+            return A.matvec(M.matvec(x))
+        APinv_partial = partial(APinv, A=A_LO, M=M_LO)
+        APinv_partial_LO = scipy.sparse.linalg.LinearOperator(A.shape, matvec=APinv_partial, dtype=float) 
+
+        # Solve system A*P^{-1} * y = b
+        y, info, resnorms = gmres(APinv_partial_LO, b, x0=x0, tol=tol, maxiter=maxiter, restart=restart, verbose=verbose) 
+
+        # Solve system P*x = y
+        x = M_LO.matvec(y)
+
+        # Return solution and info
+        return x, info, resnorms
+
 
