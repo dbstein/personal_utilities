@@ -8,7 +8,7 @@ from .fast_dot import fast_dot
 from .single_liners import concat, reshape_to_vec
 from .gmres import GmresSolver
 
-default_gmres_preference_order = ['krypy', 'scipy']
+default_gmres_type = 'right_scipy'
 
 def fast_LU_solve(LU, b):
     """
@@ -154,7 +154,7 @@ class RealAnnularGeometry(object):
         self.ipsi_DT_ipsi_DR_psi2 = dt_curvature*idenom2
 
 class WeirdAnnularModifiedHelmholtzSolver(object):
-    def __init__(self, AAG, k, gmres_preference_order=default_gmres_preference_order):
+    def __init__(self, AAG, k, gmres_type=default_gmres_type):
         self.AAG = AAG
         self.k = k
         M =  AAG.M
@@ -168,7 +168,7 @@ class WeirdAnnularModifiedHelmholtzSolver(object):
         self.small_shape = (self.M, self.ns)
         self.shape = (self.M, self.n)
         self._construct()
-        self.gmres = GmresSolver(self._apply, self._preconditioner, complex, (NB, NB), gmres_preference_order)
+        self.gmres = GmresSolver(self._apply, self._preconditioner, complex, (NB, NB), gmres_type)
     def _construct(self):
         AAG = self.AAG
         CO = AAG.CO
@@ -242,7 +242,7 @@ class AnnularModifiedHelmholtzSolver(object):
         defining the boundary conditions
     These can be changed at solvetime, but preconditioning may not work so well
     """
-    def __init__(self, AAG, k, ia=1.0, ib=0.0, oa=1.0, ob=0.0, gmres_preference_order=default_gmres_preference_order):
+    def __init__(self, AAG, k, ia=1.0, ib=0.0, oa=1.0, ob=0.0, gmres_type=default_gmres_type):
         self.AAG = AAG
         self.ia = ia
         self.ib = ib
@@ -260,7 +260,7 @@ class AnnularModifiedHelmholtzSolver(object):
         self.small_shape = (self.M, self.ns)
         self.shape = (self.M, self.n)
         self._construct()
-        self.gmres = GmresSolver(self._apply, self._preconditioner, complex, (NB, NB), gmres_preference_order)
+        self.gmres = GmresSolver(self._apply, self._preconditioner, complex, (NB, NB), gmres_type)
     def _construct(self):
         AAG = self.AAG
         CO = AAG.CO
@@ -359,7 +359,7 @@ class AnnularStokesSolver(object):
 
     The forces, and boundary conditions, must be given in this manner
     """
-    def __init__(self, AAG, mu, gmres_preference_order=default_gmres_preference_order):
+    def __init__(self, AAG, mu, gmres_type=default_gmres_type):
         self.AAG = AAG
         self.mu = mu
         M =  AAG.M
@@ -376,7 +376,7 @@ class AnnularStokesSolver(object):
         self.p_small_shape = (self.M-1, self.ns)
         self.p_shape = (self.M-1, self.n)
         self._construct()
-        self.gmres = GmresSolver(self._apply, self._preconditioner, complex, (self.NB, self.NB), gmres_preference_order)
+        self.gmres = GmresSolver(self._apply, self._preconditioner, complex, (self.NB, self.NB), gmres_type)
     def _construct(self):
         AAG = self.AAG
         CO = AAG.CO

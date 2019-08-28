@@ -1,6 +1,7 @@
 import numpy as np
 import scipy as sp
 import scipy.sparse.linalg
+from .scipy_gmres import gmres, right_gmres
 try:
     import pyamg
     pyamg_is_here = True
@@ -13,6 +14,10 @@ except:
     krypy_is_here = False
 
 LinearOperator = sp.sparse.linalg.LinearOperator
+
+acceptable_solvers = ['scipy', 'modified_scipy', 'right_scipy']
+if pyamg_is_here: acceptable_solvers += ['pyamg',]
+if krypy_is_here: acceptable_solvers += ['krypy',]
 
 class gmres_counter(object):
     def __init__(self):
@@ -31,30 +36,26 @@ class GmresSolver(object):
             'pyamg'
             'krypy'
             'scipy'
-        or a list of these solvers in order of preference
+            'modified_scipy'
         """
         self.shape = shape
         self.A = LinearOperator(shape, dtype=dtype, matvec=A_func)
         self.M = LinearOperator(shape, dtype=dtype, matvec=M_func)
         self._set_solver(solver)
     def _set_solver(self, solver):
-        for sol in tuple(solver):
-            self.__set_solver(sol)
-    def __set_solver(self, solver):
-        if not hasattr(self, 'solver'):
-            assert solver in ['krypy', 'pyamg', 'scipy'], 'Requested solver not known'
-            if solver == 'krypy':
-                assert krypy_is_here, 'Requested solver krypy is not found'
-            if solver == 'pyamg':
-                assert pyamg, 'Requested solver pyamg is not found'
-            self.solver = solver
+        assert solver in acceptable_solvers, 'Requested solver not known'
+        self.solver = solver
     def __call__(self, b, tol=1e-8, maxiter=100, restart=100):
         if self.solver == 'krypy':
             self._solve_krypy(b, tol, maxiter)
         elif self.solver == 'pyamg':
             self._solve_pyamg(b, tol, maxiter, restart)
         elif self.solver == 'scipy':
-            self.solve_scipy(b, tol, maxiter, restart)
+            self._solve_scipy(b, tol, maxiter, restart)
+        elif self.solver == 'modified_scipy':
+            self._solve_modified_scipy(b, tol, maxiter, restart)
+        elif self.solver == 'right_scipy':
+            self._solve_right_scipy(b, tol, maxiter, restart)
         else:
             raise Exception('Gmres solver not found.')
         return self.result
@@ -77,5 +78,14 @@ class GmresSolver(object):
         self.counter = counter
         self.iterations = counter.niter
         self.result = self.output[0].reshape(self.shape[0])
+    def _solve_modified_scipy(self, b, tol, maxiter, restart):
+        self.output = gmres(self.A, b.ravel(), tol=tol, restart=restart, maxiter=maxiter, M=self.M, verbose=False)
+        self.result = self.output[0].reshape(self.shape[0])
+        self.iterations = len(self.output[2])
+    def _solve_right_scipy(self, b, tol, maxiter, restart):
+        self.output = right_gmres(self.A, b.ravel(), tol=tol, restart=restart, maxiter=maxiter, M=self.M, verbose=False)
+        self.result = self.output[0].reshape(self.shape[0])
+        self.iterations = len(self.output[2])
+
 
 
