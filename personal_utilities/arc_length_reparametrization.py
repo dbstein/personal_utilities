@@ -32,7 +32,7 @@ def fractional_fourier_filter(f, fraction=2.0/3):
     fh[int(fraction*fh.shape[0]):] = 0.0
     return np.fft.irfft(fh)
 
-def arc_length_parameterize(x, y, tol=1e-14, filter_function=None):
+def arc_length_parameterize(x, y, tol=1e-14, filter_function=None, return_t=False):
     """
     Reparametrize the periodic curve defined by (x, y)
 
@@ -68,5 +68,8 @@ def arc_length_parameterize(x, y, tol=1e-14, filter_function=None):
     # get the new x and y coordinates
     x = nufft_interpolation1d(snew, xh)
     y = nufft_interpolation1d(snew, yh)
-    return filter_function(x), filter_function(y)
+    if return_t:
+        return filter_function(x), filter_function(y), snew
+    else:
+        return filter_function(x), filter_function(y)
 

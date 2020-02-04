@@ -16,8 +16,3 @@ def fast_dot(M1, M2):
         return M1.dot(M2)
     else:
         raise Exception('fast_dot requires shapes to be 1 or 2')
-
-
-    xc, _ = np.polynomial.chebyshev.chebgauss(order)
-    x, rat = affine_transformation(xc[::-1], -1, 1, lb, ub, return_ratio=True)
-    return xc[::-1], x, rat
