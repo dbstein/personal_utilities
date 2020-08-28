@@ -20,8 +20,12 @@ def _setup(n):
 def _get_speed(x, y, ik):
     xh = np.fft.fft(x)
     yh = np.fft.fft(y)
-    xp = np.fft.ifft(xh*ik).real
-    yp = np.fft.ifft(yh*ik).real
+    xhr = xh.copy()
+    yhr = yh.copy()
+    xhr[int(2*xh.size/3):int(4*xh.size/3)] = 0
+    yhr[int(2*yh.size/3):int(4*yh.size/3)] = 0
+    xp = np.fft.ifft(xhr*ik).real
+    yp = np.fft.ifft(yhr*ik).real
     sd = np.hypot(xp, yp)
     return xh, yh, sd
 
@@ -104,7 +108,7 @@ def arc_length_parameterize(x, y, tol=1e-14, filter_fraction=0.9, return_t=False
     # run Newton solver
     solver = VectorNewton(al_func, J_func)  
     snew = solver.solve(tv, tol=tol, verbose=False)
-    if True:
+    if False:
         x = nufft_interpolation1d(snew, xh)
         y = nufft_interpolation1d(snew, yh)
         filt = lambda x: fractional_fourier_filter(x, filter_fraction)
